@@ -30,7 +30,8 @@ OPTIONS = {"5m": 5, "10m": 10, "15m": 15, "30m": 30,
 
 def save_json(path: Path, value: dict) -> None:
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    temp = path.with_name(path.name + ".tmp")
+    os.chmod(path.parent, 0o700)
+    temp = path.with_name(path.name + f".{os.getpid()}.{secrets.token_hex(4)}.tmp")
     with temp.open("w", encoding="utf-8") as stream:
         json.dump(value, stream, indent=2)
     os.chmod(temp, 0o600)
@@ -122,14 +123,15 @@ def prepare_devspace(root: str, public_url: str) -> None:
     save_json(DEVSPACE_HOME / "config.json", config)
 
 
-def start_pair(root: str) -> tuple[subprocess.Popen, subprocess.Popen, str]:
+def start_pair(root: str, devspace_command: str) -> tuple[subprocess.Popen, subprocess.Popen, str]:
     STATE_HOME.mkdir(mode=0o700, parents=True, exist_ok=True)
     tunnel_log = STATE_HOME / "tunnel.log"
     tunnel_log.write_text("", encoding="utf-8")
+    os.chmod(tunnel_log, 0o600)
     with tunnel_log.open("ab", buffering=0) as stream:
         tunnel = subprocess.Popen(
             ["cloudflared", "tunnel", "--url", "http://127.0.0.1:7676",
-             "--no-autoupdate", "--logfile", str(tunnel_log), "--loglevel", "info"],
+             "--no-autoupdate", "--no-prechecks", "--logfile", str(tunnel_log), "--loglevel", "info"],
             stdin=subprocess.DEVNULL, stdout=stream, stderr=stream,
             start_new_session=True,
         )
@@ -154,8 +156,9 @@ def start_pair(root: str) -> tuple[subprocess.Popen, subprocess.Popen, str]:
         environment["DEVSPACE_LOG_SHELL_COMMANDS"] = "false"
         devspace_log = STATE_HOME / "devspace.log"
         with devspace_log.open("ab", buffering=0) as stream:
+            os.chmod(devspace_log, 0o600)
             devspace = subprocess.Popen(
-                ["devspace", "serve"], env=environment,
+                [devspace_command, "serve"], env=environment,
                 stdin=subprocess.DEVNULL, stdout=stream, stderr=stream,
                 start_new_session=True,
             )
@@ -182,6 +185,9 @@ def daemon() -> int:
     if state.get("desired") != "running":
         return 0
     deadline = state.get("deadline")
+    devspace_command = data.get("devspaceCommand") or shutil_which("devspace")
+    if not devspace_command:
+        raise RuntimeError("Pinned DevSpace executable is missing.")
     retries = 0
     tunnel = None
     devspace = None
@@ -195,17 +201,22 @@ def daemon() -> int:
             if deadline and time.time() >= deadline:
                 break
             try:
-                tunnel, devspace, mcp_url = start_pair(data["projectRoot"])
+                tunnel, devspace, mcp_url = start_pair(data["projectRoot"], devspace_command)
                 save_json(STATE, {**load_json(STATE), "status": "healthy",
                                   "mcpUrl": mcp_url, "retries": retries,
                                   "tunnel": process_record(psutil.Process(tunnel.pid)),
                                   "devspace": process_record(psutil.Process(devspace.pid))})
                 retries = 0
+                last_health_check = 0.0
                 while load_json(STATE).get("desired") == "running":
                     if deadline and time.time() >= deadline:
                         break
                     if tunnel.poll() is not None or devspace.poll() is not None:
                         raise RuntimeError("A managed process exited.")
+                    if time.time() - last_health_check >= 30:
+                        if not healthy(mcp_url.removesuffix("/mcp")):
+                            raise RuntimeError("The public endpoint became unhealthy.")
+                        last_health_check = time.time()
                     time.sleep(2)
                 if deadline and time.time() >= deadline:
                     break
@@ -239,14 +250,19 @@ def configure(args) -> None:
     auto_off = args.auto_off or prior.get("autoOff", "1h")
     if auto_off not in OPTIONS:
         raise ValueError("Choose one of: " + ", ".join(OPTIONS))
-    save_json(SETTINGS, {"projectRoot": str(root), "autoOff": auto_off})
+    devspace_command = args.devspace_command or prior.get("devspaceCommand")
+    if devspace_command and not Path(devspace_command).is_file():
+        raise ValueError("DevSpace executable does not exist.")
+    save_json(SETTINGS, {"projectRoot": str(root), "autoOff": auto_off,
+                         "devspaceCommand": devspace_command})
     print("Configured one approved root:", root)
     print("Bridge is off; run on when you are ready.")
 
 
 def on() -> None:
     data = settings()
-    if not all(shutil_which(name) for name in ("devspace", "cloudflared")):
+    devspace_command = data.get("devspaceCommand") or shutil_which("devspace")
+    if not devspace_command or not shutil_which("cloudflared"):
         raise RuntimeError("Install pinned DevSpace and cloudflared first; see README.md.")
     current = load_json(STATE)
     if live_process(current.get("daemon")):
@@ -264,6 +280,7 @@ def on() -> None:
     command.append("daemon")
     log = STATE_HOME / "controller.log"
     with log.open("ab", buffering=0) as stream:
+        os.chmod(log, 0o600)
         process = subprocess.Popen(command, stdin=subprocess.DEVNULL,
                                    stdout=stream, stderr=stream,
                                    start_new_session=True)
@@ -297,6 +314,18 @@ def off() -> None:
                       "mcpUrl": None, "devspace": None, "tunnel": None})
     print("Bridge and tunnel are off.")
 
+
+def rotate() -> None:
+    before = load_json(STATE)
+    off()
+    if any(live_process(before.get(name)) for name in ("daemon", "devspace", "tunnel")):
+        raise RuntimeError("A managed process remains; OAuth revocation is incomplete.")
+    database = STATE_HOME / "devspace-state" / "devspace.sqlite"
+    for path in (database, Path(str(database) + "-wal"), Path(str(database) + "-shm")):
+        if path.exists():
+            path.unlink()
+    save_json(DEVSPACE_HOME / "auth.json", {"ownerToken": secrets.token_urlsafe(32)})
+    print("Bridge is off. OAuth database cleared and Owner password rotated.")
 
 def status() -> None:
     current = load_json(STATE)
@@ -338,7 +367,8 @@ def main() -> int:
     config = commands.add_parser("configure")
     config.add_argument("--root", required=True)
     config.add_argument("--auto-off", choices=OPTIONS)
-    for action in ("on", "off", "status", "doctor", "menu", "daemon"):
+    config.add_argument("--devspace-command")
+    for action in ("on", "off", "status", "doctor", "menu", "daemon", "rotate"):
         commands.add_parser(action)
     args = parser.parse_args()
     try:
@@ -350,8 +380,10 @@ def main() -> int:
             off()
         elif args.action == "status":
             status()
+        elif args.action == "rotate":
+            rotate()
         elif args.action == "doctor":
-            print("DevSpace:", shutil_which("devspace") or "missing")
+            print("DevSpace:", settings().get("devspaceCommand") or shutil_which("devspace") or "missing")
             print("Cloudflared:", shutil_which("cloudflared") or "missing")
             print("Approved root:", settings()["projectRoot"])
         elif args.action == "menu":

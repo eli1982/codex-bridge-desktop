@@ -9,16 +9,16 @@ A local control app for the [codex-chatgpt-bridge](https://github.com/Zhenyu98/c
 | Platform | Build result | Control surface | Status |
 | --- | --- | --- | --- |
 | Windows 10/11 | Codex Bridge.exe and Kill Codex Bridge.exe | Notification-area tray and details window | Locally built and tested |
-| Ubuntu | codex-bridge ELF and desktop launcher | Terminal menu and on/off/status commands | Build and lifecycle need Ubuntu testers |
-| macOS | codex-bridge Mach-O and Codex Bridge.app launcher | Terminal menu and on/off/status commands | Build and lifecycle need macOS testers |
+| Ubuntu | codex-bridge ELF and desktop launcher | Terminal menu and on/off/status commands | Native build passed CI; lifecycle needs Ubuntu testers |
+| macOS | codex-bridge Mach-O and Codex Bridge.app launcher | Terminal menu and on/off/status commands | Native build passed CI; lifecycle needs macOS testers |
 
 This repository contains no upstream binaries, credentials, browser sessions, personal workspace paths, or public tunnel URLs. It builds binaries on each user's machine. Runtime settings and credentials live outside this repository.
 
 ## Pinned dependencies
 
 - [codex-chatgpt-bridge](https://github.com/Zhenyu98/codex-chatgpt-bridge), tag v0.3.0, commit 351c66fef0390872443af1587a978e6f76f479b8. The Windows installer clones and verifies this revision, then installs its skill. Windows scripts here are derived from that workflow; see [NOTICE.md](NOTICE.md).
-- [DevSpace](https://github.com/Waishnav/devspace), npm package @waishnav/devspace version 1.0.2. The installers refuse to silently downgrade a different installed version.
-- Node.js 22.19 through 26.x, npm, Git, and Cloudflare cloudflared.
+- [DevSpace](https://github.com/Waishnav/devspace), npm package @waishnav/devspace version 1.0.2. The Windows installer refuses to silently downgrade a different global version. The Unix installer keeps this version under the user account without changing global npm packages.
+- Node.js 20.12 through 26.x, npm, Git, and Cloudflare cloudflared.
 - Windows build: Windows PowerShell 5.1 and the .NET Framework 4.x C# compiler.
 - Ubuntu/macOS build: Python 3.10+ with venv and pip, plus pinned psutil and PyInstaller in [build-requirements.txt](unix/build-requirements.txt). macOS also uses built-in sips and iconutil.
 
@@ -28,7 +28,7 @@ The Windows controller can install a signed cloudflared binary on first On. For 
 
 ### Windows
 
-1. Install Node.js, Git, and npm. Check that the Node version is at least 22.19.
+1. Install Node.js, Git, and npm. Check that the Node version is at least 20.12.
 2. Download or clone this private repository.
 3. Double-click [install.cmd](install.cmd). Enter **one narrow project folder** when prompted. It builds both EXEs, installs the pinned upstream skill and DevSpace if absent, and creates a Start menu shortcut.
 4. Open **Codex Bridge** from Start. The bridge remains off until you choose **Turn on**.
@@ -55,7 +55,7 @@ The Unix controller uses its own DevSpace config directory under the user's XDG 
 ## Runtime behavior
 
 - On starts DevSpace and a Quick Tunnel, checks local and public OAuth/MCP endpoints, and displays the current MCP URL.
-- Off records intentional shutdown and stops managed processes. It does not revoke OAuth grants. Use upstream Rotate after suspected unauthorized access.
+- Off records intentional shutdown and stops managed processes. It does not revoke OAuth grants. After suspected unauthorized access, use bridge.cmd Rotate on Windows or codex-bridge rotate on Unix. Rotation clears persisted DevSpace OAuth state and changes the Owner password; reconnect ChatGPT afterward.
 - Windows retries unexpected failures up to three times per healthy run within the selected auto-off window. Unix beta retries up to three times and may assign a new temporary URL.
 - Traffic and token figures are rough estimates of tunnel bytes. They are not actual Codex usage or billing.
 - Project content is accessed when an authorized client invokes tools, but shell access remains powerful. Read [SECURITY.md](SECURITY.md).

@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('On', 'Recover', 'Off', 'Status', 'Doctor')]
+  [ValidateSet('On', 'Recover', 'Off', 'Status', 'Doctor', 'Rotate')]
   [string]$Action = 'Status'
 )
 
@@ -170,6 +170,33 @@ try {
         throw 'Bridge shutdown could not confirm that all managed processes stopped.'
       }
       Write-Host 'Bridge is off. No bridge or tunnel process remains.'
+    }
+    'Rotate' {
+      $result = Invoke-Controller -Operation Off
+      $remaining = @($result.data.remainingDevspace).Count +
+        @($result.data.remainingTunnel).Count +
+        @($result.data.remainingPortOwners).Count
+      if ($result.status -ne 'success' -or $remaining -gt 0) {
+        throw 'Emergency revoke stopped: bridge shutdown is not verified.'
+      }
+      $rotateOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bridge -Action Rotate
+      if ($LASTEXITCODE -ne 0) { throw 'Owner password rotation failed.' }
+      $stateDir = if ($env:DEVSPACE_STATE_DIR) { [IO.Path]::GetFullPath($env:DEVSPACE_STATE_DIR) }
+        else { Join-Path $env:USERPROFILE '.local\share\devspace' }
+      $homeRoot = [IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd('\') + '\'
+      $localRoot = [IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd('\') + '\'
+      if (-not $stateDir.StartsWith($homeRoot, [StringComparison]::OrdinalIgnoreCase) -and
+          -not $stateDir.StartsWith($localRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Custom DevSpace state is outside the user profile; clear its OAuth database manually before reconnecting.'
+      }
+      $database = Join-Path $stateDir 'devspace.sqlite'
+      foreach ($candidate in @($database, "$database-wal", "$database-shm")) {
+        if (Test-Path -LiteralPath $candidate) {
+          Remove-Item -LiteralPath $candidate -Force -ErrorAction Stop
+        }
+      }
+      if (Test-Path -LiteralPath $database) { throw 'OAuth database remains; revocation is incomplete.' }
+      Write-Host 'Bridge is off. Owner password rotated and persisted OAuth database cleared. Reconnect ChatGPT before using the bridge.'
     }
     'Status' {
       $result = Invoke-Controller -Operation Status

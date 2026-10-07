@@ -15,7 +15,7 @@ ChatGPT project membership, agent instructions, and read-only prompts are policy
 - Unix writes one allowed root and isolated DevSpace config under the user's XDG config directory. The Owner password is generated locally with a cryptographic RNG and stored in a mode-0600 file.
 - Runtime profiles, owner passwords, OAuth state, logs, public URLs, and PIDs are never tracked in Git. The ignore file excludes build and runtime output; a separate release scan checks tracked content.
 - The temporary Quick Tunnel uses a changing URL. Anyone can reach its network endpoint while it runs, but an OAuth grant is required for MCP tools. A stolen owner password or token changes that risk.
-- Off preserves authorization data so reconnecting is easier. For suspected compromise, stop the bridge, use upstream Rotate on Windows, and revoke/reconnect the ChatGPT app. Unix beta currently requires deleting its isolated OAuth state and regenerating the Owner token manually after Off.
+- Off preserves authorization data so reconnecting is easier. For suspected compromise, run bridge.cmd Rotate on Windows or codex-bridge rotate on Unix. The command verifies shutdown, clears the pinned DevSpace SQLite OAuth database, and changes the Owner password. This also removes saved DevSpace workspace state, though it does not delete project files. Reconnect the ChatGPT app afterward. If rotation reports an error, do not assume old grants were revoked.
 
 ## Supply chain and platform limits
 

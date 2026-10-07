@@ -56,6 +56,17 @@ class UnixSafetyTests(unittest.TestCase):
         self.assertEqual(bridge.load_json(bridge.STATE)["desired"], "stopped")
         self.assertEqual(bridge.load_json(bridge.STATE)["status"], "off")
 
+    def test_rotate_revokes_persisted_oauth_and_changes_owner_password(self):
+        bridge.save_json(bridge.STATE, {"desired": "stopped", "status": "off"})
+        database = bridge.STATE_HOME / "devspace-state/devspace.sqlite"
+        database.parent.mkdir(parents=True)
+        database.write_text("test-state")
+        auth = bridge.DEVSPACE_HOME / "auth.json"
+        bridge.save_json(auth, {"ownerToken": "previous-owner-password"})
+        bridge.rotate()
+        self.assertFalse(database.exists())
+        self.assertNotEqual(json.loads(auth.read_text())["ownerToken"],
+                            "previous-owner-password")
     def test_on_without_dependencies_does_not_create_runtime(self):
         bridge.save_json(bridge.SETTINGS, {
             "projectRoot": str(self.project), "autoOff": "1h"

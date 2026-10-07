@@ -9,6 +9,7 @@ Use a disposable folder with no secrets. Start with the bridge **off** and one n
 5. Turn off. Confirm the local listener, DevSpace process, and tunnel process are gone. Try the ChatGPT tool again; it should fail to reach the bridge.
 6. Test intentional exit while already off. On Windows, confirm Exit closes promptly. Test the Kill executable only on the tester's own bridge processes.
 7. With a short auto-off setting, confirm it stops at the selected deadline. For recovery, terminate the owned tunnel and confirm no more than three retries during the active window. Expect a new temporary URL.
-8. Reinstall over the test installation. Confirm it does not silently widen the allowed root or overwrite a different upstream version.
+8. With the bridge off and a disposable DevSpace state, test Rotate. Confirm the old OAuth grant fails and the Owner password changes. Rotation clears the saved DevSpace workspace database.
+9. Reinstall over the test installation. Confirm it does not silently widen the allowed root or overwrite a different upstream version.
 
 Report failures with steps to reproduce, expected and actual behavior, and redacted logs. Remove Owner passwords, OAuth tokens, live tunnel URLs, personal project names, and private file contents. Prefix issues with the platform. Do not submit sensitive data through GitHub issues.

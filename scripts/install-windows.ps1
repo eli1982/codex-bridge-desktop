@@ -9,7 +9,7 @@ function Require-Command([string]$name) {
 }
 foreach ($name in @('git.exe','node.exe','npm.cmd','powershell.exe')) { Require-Command $name }
 $nodeVersion = [version]((& node.exe -p 'process.versions.node').Trim())
-if ($nodeVersion -lt [version]'22.19.0' -or $nodeVersion.Major -ge 27) { throw 'Node.js 22.19 through 26.x is required.' }
+if ($nodeVersion -lt [version]'20.12.0' -or $nodeVersion.Major -ge 27) { throw 'Node.js 20.12 through 26.x is required for pinned DevSpace 1.0.2.' }
 if (-not $ProjectRoot) { $ProjectRoot = Read-Host 'Enter one project folder to expose when the bridge is on' }
 $rootItem = Get-Item -LiteralPath $ProjectRoot -ErrorAction Stop
 if (-not $rootItem.PSIsContainer -or ($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
@@ -40,6 +40,10 @@ if ($installedVersion -and $installedVersion -ne $devspaceVersion) {
 if (-not $installedVersion) {
   & npm.cmd install -g "@waishnav/devspace@$devspaceVersion"
   if ($LASTEXITCODE -ne 0) { throw 'DevSpace installation failed.' }
+}
+$expectedCli = Join-Path $env:APPDATA 'npm\devspace.cmd'
+if (-not (Test-Path -LiteralPath $expectedCli)) {
+  throw 'The pinned Windows controller expects DevSpace at the standard per-user npm prefix. Check npm prefix before installing.'
 }
 $null = New-Item -ItemType Directory -Path $settingsDir -Force
 if (-not (Test-Path -LiteralPath $upstreamDir)) {

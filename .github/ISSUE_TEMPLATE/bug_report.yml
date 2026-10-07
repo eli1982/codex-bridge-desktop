@@ -1,0 +1,41 @@
+name: Beta bug report
+description: Report a reproducible beta issue without secrets or personal paths.
+title: "[Platform] Short summary"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include Owner passwords, OAuth tokens, live tunnel URLs, personal paths, or private code. Report security issues privately to the owner."
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - Ubuntu
+        - macOS
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use a disposable test folder.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: OS, Node, and app versions
