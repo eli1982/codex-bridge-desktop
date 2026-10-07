@@ -1,8 +1,22 @@
 # Codex Bridge Desktop
 
-A local control app for the [codex-chatgpt-bridge](https://github.com/Zhenyu98/codex-chatgpt-bridge) workflow. It starts and stops [DevSpace](https://github.com/Waishnav/devspace) and a temporary Cloudflare Quick Tunnel. The public endpoint is **off by default**.
+Codex Bridge Desktop lets ChatGPT inspect a chosen local project and help plan coding work while Codex handles edits, builds, and tests on your computer. It is designed to reduce the amount of broad repository context sent through a Codex chat by routing those reviews through [codex-chatgpt-bridge](https://github.com/Zhenyu98/codex-chatgpt-bridge). This does **not** guarantee lower overall token usage, cost, or plan consumption: ChatGPT also uses your account's allowance, and the traffic figures in this app are estimates rather than measured Codex savings.
 
-> **Private beta.** Windows has a tray app with status, recovery, automatic turnoff, and traffic estimates. Ubuntu and macOS have a locally built command-line executable and desktop launcher. Their native launchers and live tunnel lifecycle need testing on those operating systems before a public release. No remote-access program can honestly guarantee 100% security; read [SECURITY.md](SECURITY.md) before connecting ChatGPT.
+The app starts and stops a local [DevSpace](https://github.com/Waishnav/devspace) MCP server and a temporary Cloudflare Quick Tunnel. The public endpoint is **off by default**. Task routing is manual: you decide what ChatGPT reads and which suggestions Codex implements.
+
+## How it works
+
+```mermaid
+flowchart LR
+    Files["Your project files<br/>local computer"] <-->|"Tool reads when requested"| MCP["DevSpace MCP server<br/>local computer"]
+    MCP <-->|"OAuth over temporary tunnel"| ChatGPT["ChatGPT<br/>remote review and planning"]
+    ChatGPT -->|"Plan and recommendations"| Codex["Codex<br/>local edits, builds, and tests"]
+    Codex -->|"Verify and change files"| Files
+```
+
+Reading tools run on your computer; requested content passes through the tunnel to ChatGPT for review. Codex applies and verifies changes locally. The bridge does not automatically upload an entire project, but an authorized client can request file content or run shell commands. See the [actual security boundary](SECURITY.md#actual-boundary) before connecting it to a sensitive workspace.
+
+> **Vibe-coded beta: use at your own risk.** This project was 100% vibe coded. It has had local checks and Windows, Ubuntu, and macOS CI builds, but that is not an independent security audit; the full Ubuntu and macOS tunnel lifecycle still needs native testing. Review the [security notes](SECURITY.md), [OpenAI's Terms of Use](https://openai.com/policies/terms-of-use/) and any other terms that apply to your ChatGPT/Codex account and connected services. You are responsible for deciding whether this workflow is permitted for your account and data.
 
 ## What is installed
 
