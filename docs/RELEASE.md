@@ -1,6 +1,6 @@
 # Cohort and release plan
 
-1. Keep this repository private. Invite 3–5 named testers as GitHub collaborators with the minimum necessary permission. Start with Windows testers using disposable projects; the Windows tray is the only locally exercised full app.
+1. Keep this repository private. Invite 3–5 named testers as GitHub collaborators. This personal private repository permits collaborator forks; invite only people you trust with a local copy of the source. Start with Windows testers using disposable projects; the Windows tray is the only locally exercised full app.
 2. Give each tester the README and security model before connecting ChatGPT. Ask them to run the checklist and report OS/build/lifecycle results in private issues.
 3. Add one Ubuntu and one macOS tester specifically for native build, launcher, process cleanup, auto-off, and OAuth connection. Treat those platforms as experimental until their results pass.
 4. Fix findings in the private repository, rotate any accidentally disclosed credentials, and repeat the full smoke test. Make a tagged beta release only after every supported platform has passed.

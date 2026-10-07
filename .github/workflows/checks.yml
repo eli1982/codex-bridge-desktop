@@ -36,5 +36,8 @@ jobs:
           python scripts/scan-release.py
           python -m unittest discover -s tests -v
           bash -n install.sh scripts/install-unix.sh scripts/build-unix.sh
-      - name: Build native executable
-        run: bash scripts/build-unix.sh
+      - name: Build and smoke test native executable
+        run: |
+          bash scripts/build-unix.sh
+          case "$(uname -s)" in Darwin) platform=macos ;; Linux) platform=ubuntu ;; esac
+          "./dist/$platform/codex-bridge" status

@@ -32,7 +32,7 @@ The Windows controller can install a signed cloudflared binary on first On. For 
 2. Download or clone this private repository.
 3. Double-click [install.cmd](install.cmd). Enter **one narrow project folder** when prompted. It builds both EXEs, installs the pinned upstream skill and DevSpace if absent, and creates a Start menu shortcut.
 4. Open **Codex Bridge** from Start. The bridge remains off until you choose **Turn on**.
-5. Copy the displayed MCP address, ending in /mcp, to your own ChatGPT custom MCP connection. Follow the [ChatGPT connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt). Keep the Owner password local. Test with a disposable, non-sensitive folder first.
+5. Copy the displayed MCP address, ending in /mcp, to your own ChatGPT custom MCP connection. Follow the [connection walkthrough](docs/CONNECT.md) and the [official ChatGPT guide](https://developers.openai.com/plugins/deploy/connect-chatgpt). Keep the Owner password local. Test with a disposable, non-sensitive folder first.
 6. Choose **Turn off** or **Exit** when finished. If stuck, run **Kill Codex Bridge** from the installed program folder.
 
 The installer refuses drive roots, the entire user profile, and a directory containing the user profile. It sets upstream ProjectRoot and the sole AllowedRoots entry to the folder you chose.
@@ -44,7 +44,7 @@ The installer refuses drive roots, the entire user profile, and a directory cont
 3. Launch **Codex Bridge** from the desktop launcher, or run: ~/.local/bin/codex-bridge on
 4. Run ~/.local/bin/codex-bridge status to see the current MCP URL and ~/.local/bin/codex-bridge off to stop it. Automatic turnoff defaults to one hour. Change it with: codex-bridge configure --root /absolute/path/to/project --auto-off 2h
 
-The Unix controller uses its own DevSpace config directory under the user's XDG config directory. It does not read the person's existing DevSpace credentials. The Unix build uses a terminal menu; it does not yet provide a persistent colored system tray.
+The Unix controller uses its own DevSpace config directory under the user's XDG config directory. It does not read the person's existing DevSpace credentials. The upstream project's PowerShell skill is installed only on Windows; Unix currently controls DevSpace directly and Codex task routing remains manual. The Unix build uses a terminal menu; it does not yet provide a persistent colored system tray.
 
 ## Build without installing
 
@@ -60,4 +60,4 @@ The Unix controller uses its own DevSpace config directory under the user's XDG 
 - Traffic and token figures are rough estimates of tunnel bytes. They are not actual Codex usage or billing.
 - Project content is accessed when an authorized client invokes tools, but shell access remains powerful. Read [SECURITY.md](SECURITY.md).
 
-See [docs/TESTING.md](docs/TESTING.md) for the smoke-test checklist and [docs/RELEASE.md](docs/RELEASE.md) for a staged cohort plan. Do not post Owner passwords, OAuth tokens, public URLs, or unredacted logs in GitHub issues.
+See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for recovery help, [docs/TESTING.md](docs/TESTING.md) for the smoke-test checklist and [docs/RELEASE.md](docs/RELEASE.md) for a staged cohort plan. Do not post Owner passwords, OAuth tokens, public URLs, or unredacted logs in GitHub issues.
