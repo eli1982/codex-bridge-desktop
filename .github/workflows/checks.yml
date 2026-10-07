@@ -1,0 +1,40 @@
+name: Private beta checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install psutil==7.2.2
+      - name: Security and unit checks
+        shell: pwsh
+        run: |
+          python scripts/scan-release.py
+          python -m unittest discover -s tests -v
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\build-windows.ps1
+  unix:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Security and source checks
+        run: |
+          python -m pip install psutil==7.2.2
+          python scripts/scan-release.py
+          python -m unittest discover -s tests -v
+          bash -n install.sh scripts/install-unix.sh scripts/build-unix.sh
+      - name: Build native executable
+        run: bash scripts/build-unix.sh
