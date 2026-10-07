@@ -43,7 +43,7 @@ The Windows controller can install a signed cloudflared binary on first On. For 
 ### Windows
 
 1. Install Node.js, Git, and npm. Check that the Node version is at least 20.12.
-2. Download or clone this private repository.
+2. Download or clone this public repository.
 3. Double-click [install.cmd](install.cmd). Enter **one narrow project folder** when prompted. It builds both EXEs, installs the pinned upstream skill and DevSpace if absent, and creates a Start menu shortcut.
 4. Open **Codex Bridge** from Start. The bridge remains off until you choose **Turn on**.
 5. Copy the displayed MCP address, ending in /mcp, to your own ChatGPT custom MCP connection. Follow the [connection walkthrough](docs/CONNECT.md) and the [official ChatGPT guide](https://developers.openai.com/plugins/deploy/connect-chatgpt). Keep the Owner password local. Test with a disposable, non-sensitive folder first.
@@ -70,7 +70,7 @@ The Unix controller uses its own DevSpace config directory under the user's XDG 
 
 GitHub Actions checks the default branch once a night at **2:30 AM Europe/London** and can also be started immediately with **Actions → Nightly platform builds → Run workflow**. A scheduled run launches Windows, Ubuntu, and macOS builds only when the current commit lacks a successful three-platform build. A failed or interrupted attempt is retried the next night. Manual runs always build and keep downloadable packages for one day so you can assemble a release. Nightly runs do not store packages. Pushes and pull requests do not start this workflow.
 
-Even when all builds are skipped, the short Ubuntu check consumes some Actions time. Private repositories use the account's included Actions allowance; a workflow alone cannot guarantee a $0 bill once that allowance is exhausted. For a strict $0 overage, set a repository-scoped Actions budget of $0 with **Stop usage when budget limit is reached** in [GitHub billing settings](https://github.com/settings/billing), and verify it is active before manually starting a build. See [GitHub's billing rules](https://docs.github.com/en/billing/concepts/product-billing/github-actions) and [budget instructions](https://docs.github.com/en/billing/how-tos/set-up-budgets). GitHub may delay a scheduled run, and a London spring clock change moves a nonexistent 2:30 AM slot to the next valid time.
+Even when all builds are skipped, the short Ubuntu check consumes some Actions time. Standard GitHub-hosted runners are free for public repositories. If you run a private fork or copy, its Actions usage may be billed after the included allowance; set an Actions product budget of $0 with **Stop usage when budget limit is reached** and enable included usage alerts in [GitHub billing settings](https://github.com/settings/billing/budgets). See [GitHub's billing rules](https://docs.github.com/en/billing/concepts/product-billing/github-actions) and [budget instructions](https://docs.github.com/en/billing/how-tos/set-up-budgets). GitHub may delay a scheduled run, and a London spring clock change moves a nonexistent 2:30 AM slot to the next valid time.
 
 ## Runtime behavior
 

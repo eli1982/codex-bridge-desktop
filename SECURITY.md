@@ -25,4 +25,4 @@ The Ubuntu and macOS paths are beta implementations. Their tunnel lifecycle and 
 
 ## Reporting a vulnerability
 
-During the private beta, contact the repository owner privately through GitHub. Do not include secrets, tokens, live tunnel addresses, or exploit payloads in a public issue. Turn off the bridge immediately if you suspect unauthorized access.
+During the public beta, contact the repository owner privately through GitHub about suspected vulnerabilities. Do not include secrets, tokens, live tunnel addresses, or exploit payloads in a public issue. Turn off the bridge immediately if you suspect unauthorized access.

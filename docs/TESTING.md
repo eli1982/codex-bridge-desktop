@@ -1,4 +1,4 @@
-# Private beta test checklist
+# Public beta test checklist
 
 Use a disposable folder with no secrets. Start with the bridge **off** and one narrow allowed root.
 
