@@ -1,12 +1,37 @@
-name: Private beta checks
+name: Nightly platform builds
 on:
-  push:
-  pull_request:
+  schedule:
+    - cron: '30 2 * * *'
+      timezone: Europe/London
+  workflow_dispatch:
+
 permissions:
   contents: read
+  statuses: write
+
+concurrency:
+  group: platform-builds-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: decide
+        name: Check last successful build for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci_build_gate.py gate
+
   windows:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -20,11 +45,23 @@ jobs:
           python scripts/scan-release.py
           python -m unittest discover -s tests -v
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\build-windows.ps1
+      - name: Keep Windows package for a manual release
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: codex-bridge-windows
+          path: dist/windows/
+          if-no-files-found: error
+          retention-days: 1
+
   unix:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -41,3 +78,30 @@ jobs:
           bash scripts/build-unix.sh
           case "$(uname -s)" in Darwin) platform=macos ;; Linux) platform=ubuntu ;; esac
           "./dist/$platform/codex-bridge" status
+      - name: Package native executable for a manual release
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          case "$(uname -s)" in Darwin) platform=macos ;; Linux) platform=ubuntu ;; esac
+          tar -C "dist/$platform" -czf "dist/codex-bridge-$platform.tar.gz" .
+      - name: Keep native package for a manual release
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: codex-bridge-${{ matrix.os }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  record:
+    needs: [gate, windows, unix]
+    if: ${{ always() && needs.gate.result == 'success' && needs.gate.outputs.build == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Record the platform build result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WINDOWS_RESULT: ${{ needs.windows.result }}
+          UNIX_RESULT: ${{ needs.unix.result }}
+        run: python3 scripts/ci_build_gate.py record
